@@ -6,6 +6,14 @@
     <title>Admin Portal - Kehadiran</title>
     <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    
+    <script src="auth.js"></script>
+    <script>
+    if (!auth || !auth.isAuthenticated || !auth.isAuthenticated()) {
+        window.location.href = 'adminlogin.html';
+    }
+    </script>
+    
     <style>
         * {
             box-sizing: border-box;
@@ -299,6 +307,7 @@
         <div class="header">
             <h1>Admin Portal</h1>
             <p class="subtitle">Sistem Pengurusan Kehadiran</p>
+            <button class="refresh-btn" style="float:right;" onclick="logout()">Log Keluar</button>
         </div>
 
         <div class="tabs">
@@ -369,6 +378,9 @@
     </div>
 
     <script>
+        if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+            window.location.href = "adminlogin.html";
+        }
         let sessionData = {};
         let allAttendanceData = {};
         
@@ -644,6 +656,11 @@
         document.addEventListener('DOMContentLoaded', () => {
             loadSessionData();
         });
+
+        function logout() {
+            sessionStorage.clear();
+            window.location.href = "adminlogin.html";
+        }
     </script>
 </body>
 </html>
