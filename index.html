@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="ms">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Borang Kehadiran</title>
+    <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'League Spartan', sans-serif;
+            background: transparent;
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+        }
+
+        .form-container {
+            background: #F4F6F8;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 20px 40px rgba(0, 0, 0, 0.15);
+            width: 100%;
+            max-width: 500px;
+        }
+
+        .form-title {
+            color: #1A2350;
+            font-size: 28px;
+            font-weight: 700;
+            text-align: center;
+            margin-bottom: 30px;
+            letter-spacing: -0.5px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            color: #4A4A4A;
+            font-weight: 600;
+            font-size: 16px;
+            margin-bottom: 8px;
+        }
+
+        .required {
+            color: #ff4757;
+        }
+
+        input, select {
+            width: 100%;
+            padding: 15px 20px;
+            border: 2px solid #a0a0a0;
+            border-radius: 12px;
+            font-family: 'League Spartan', sans-serif;
+            font-size: 16px;
+            background: white;
+            transition: all 0.3s ease;
+        }
+
+        input:focus, select:focus {
+            outline: none;
+            border-color: #1FA2FF;
+            box-shadow: 0 0 0 3px rgba(31, 162, 255, 0.1);
+        }
+
+        input[readonly] {
+            background: #f8f9fa;
+            color: #4A4A4A;
+            cursor: not-allowed;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 18px;
+            background: linear-gradient(135deg, #1FA2FF 0%, #12D8FA 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-family: 'League Spartan', sans-serif;
+            font-size: 18px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 25px rgba(31, 162, 255, 0.3);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .submit-btn:disabled {
+            background: #a0a0a0;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .message {
+            padding: 15px 20px;
+            border-radius: 12px;
+            margin-top: 20px;
+            font-weight: 600;
+            text-align: center;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        @media (max-width: 600px) {
+            .form-container {
+                padding: 30px 20px;
+            }
+            
+            .form-title {
+                font-size: 24px;
+            }
+
+            input, select {
+                font-size: 14px;
+                padding: 12px 16px;
+            }
+
+            .submit-btn {
+                font-size: 16px;
+                padding: 16px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="form-container">
+        <h1 class="form-title">Borang Kehadiran</h1>
+        
+        <div id="errorContainer" class="message error hidden"></div>
+
+        <form id="attendanceForm">
+            <div class="form-group">
+                <label for="nama">Nama <span class="required">*</span></label>
+                <input type="text" id="nama" name="nama" required>
+            </div>
+
+            <div class="form-group">
+                <label for="jabatan">Jabatan <span class="required">*</span></label>
+                <input type="text" id="jabatan" name="jabatan" required>
+            </div>
+
+            <div class="form-group">
+                <label for="trainer">Trainer/Trainee <span class="required">*</span></label>
+                <select id="trainer" name="trainer" required>
+                    <option value="">Pilih...</option>
+                    <option value="UPSI">UPSI</option>
+                    <option value="UNIMAS">UNIMAS</option>
+                </select>
+            </div>
+
+            <div class="form-group">
+                <label for="sesi">Sesi</label>
+                <input type="text" id="sesi" name="sesi" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="modul">Modul</label>
+                <input type="text" id="modul" name="modul" readonly>
+            </div>
+
+            <div class="form-group">
+                <label for="tarikh">Tarikh & Masa</label>
+                <input type="text" id="tarikh" name="tarikh" readonly>
+            </div>
+
+            <button type="submit" class="submit-btn" id="submitBtn">
+                Hantar Kehadiran
+            </button>
+        </form>
+
+        <div id="message" class="message"></div>
+    </div>
+
+    <script>
+        const sessionData = {
+            '1': {
+                sesi: 'Sesi 4',
+                modul: 'Modul Payroll (Gaji)',
+                tarikh: '27 Oktober 2025 (Isnin), 8.30 am - 5.00 pm'
+            },
+            '2': {
+                sesi: 'Sesi 4',
+                modul: 'Modul Payroll (Gaji)',
+                tarikh: '28 Oktober 2025 (Selasa), 8.30 am - 5.00 pm'
+            },
+            '3': {
+                sesi: 'Sesi 4',
+                modul: 'Modul Student Account (Akaun Pelajar)',
+                tarikh: '29 Oktober 2025 (Rabu), 8.30 am - 5.00 pm'
+            },
+            '4': {
+                sesi: 'Sesi 4',
+                modul: 'Modul Student Account (Akaun Pelajar)',
+                tarikh: '30 Oktober 2025 (Khamis), 8.30 am - 5.00 pm'
+            },
+            '5': {
+                sesi: 'Sesi 4',
+                modul: 'Modul ePayment',
+                tarikh: '31 Oktober 2025 (Jumaat), 8.30 am - 5.00 pm'
+            }
+        };
+
+        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbxZ9wS9Jbxh0Tf_Z1aHsejnyzEN8DvDpU_4Q0RkAxQ/dev';
+
+        function showMessage(text, type) {
+            const messageDiv = document.getElementById('message');
+            messageDiv.textContent = text;
+            messageDiv.className = `message ${type}`;
+            messageDiv.style.display = 'block';
+            
+            setTimeout(() => {
+                messageDiv.style.display = 'none';
+            }, 5000);
+        }
+
+        function showError(text) {
+            const errorDiv = document.getElementById('errorContainer');
+            errorDiv.textContent = text;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function initializeForm() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlParam = urlParams.get('url');
+            
+            if (!urlParam || !sessionData[urlParam]) {
+                showError('Sila scan QR yang betul untuk sesi kehadiran.');
+                return;
+            }
+
+            const data = sessionData[urlParam];
+            document.getElementById('sesi').value = data.sesi;
+            document.getElementById('modul').value = data.modul;
+            document.getElementById('tarikh').value = data.tarikh;
+            
+            document.getElementById('attendanceForm').classList.remove('hidden');
+        }
+
+        document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
+            e.preventDefault();
+            
+            const submitBtn = document.getElementById('submitBtn');
+            const originalText = submitBtn.textContent;
+            
+            submitBtn.disabled = true;
+            submitBtn.textContent = 'Menghantar...';
+            
+            const formData = {
+                Nama: document.getElementById('nama').value,
+                Jabatan: document.getElementById('jabatan').value,
+                'Trainer/Trainee': document.getElementById('trainer').value,
+                Sesi: document.getElementById('sesi').value,
+                Modul: document.getElementById('modul').value,
+                'Tarikh & Masa': document.getElementById('tarikh').value
+            };
+            
+            try {
+                const response = await fetch(ENDPOINT, {
+                    method: 'POST',
+                    mode: 'no-cors',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const sesiNumber = document.getElementById('sesi').value;
+                showMessage(`Kehadiran anda untuk ${sesiNumber} telah direkodkan!`, 'success');
+                
+                document.getElementById('nama').value = '';
+                document.getElementById('jabatan').value = '';
+                document.getElementById('trainer').value = '';
+                
+            } catch (error) {
+                console.error('Error:', error);
+                showMessage('Ralat semasa menghantar. Sila cuba lagi.', 'error');
+            } finally {
+                submitBtn.disabled = false;
+                submitBtn.textContent = originalText;
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', initializeForm);
+    </script>
+</body>
+</html>
