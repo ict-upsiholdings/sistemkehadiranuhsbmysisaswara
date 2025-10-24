@@ -537,7 +537,11 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Menghantar<span class="loading-spinner"></span>';
             
+            const urlParams = new URLSearchParams(window.location.search);
+            const urlParam = urlParams.get('url'); 
+
             const postData = {
+                url: urlParam,
                 Nama: document.getElementById('nama').value.trim(),
                 Jabatan: document.getElementById('jabatan').value.trim(),
                 'Trainer/Trainee': document.getElementById('trainer').value,
@@ -562,13 +566,19 @@
                 
                 console.log('Response received:', response);
                 
-                const sesiName = document.getElementById('sesi').value;
-                showMessage(`✓ Kehadiran anda untuk Sesi ${sesiName} telah berjaya direkodkan!`, 'success');
-                
-                // Reset form
-                document.getElementById('nama').value = '';
-                document.getElementById('jabatan').value = '';
-                document.getElementById('trainer').value = '';
+                const result = await response.json();
+        
+                if (result.status === 'success') {
+                    const sesiName = document.getElementById('sesi').value;
+                    showMessage(`✓ Kehadiran anda untuk Sesi ${sesiName} telah berjaya direkodkan!`, 'success');
+                    
+                    // Reset form
+                    document.getElementById('nama').value = '';
+                    document.getElementById('jabatan').value = '';
+                    document.getElementById('trainer').value = '';
+                } else {
+                    showMessage('✗ ' + (result.message || 'Ralat tidak diketahui'), 'error');
+                }
                 
             } catch (error) {
                 console.error('Error:', error);
