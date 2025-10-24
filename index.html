@@ -40,39 +40,38 @@
         }
 
         .form-container {
-        background: #F4F6F8;
-        padding: 40px 36px;
-        border-radius: 22px;
-        box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
-        width: 100%;
-        max-width: 500px;
-        position: relative;
-        z-index: 1;
-        backdrop-filter: blur(10px);
-        border: 1px solid rgba(255, 255, 255, 0.2);
-        margin: 40px auto;
+            background: #F4F6F8;
+            padding: 40px 36px;
+            border-radius: 22px;
+            box-shadow: 0 25px 60px rgba(0, 0, 0, 0.35);
+            width: 100%;
+            max-width: 500px;
+            position: relative;
+            z-index: 1;
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            margin: 40px auto;
         }
 
-        /* === LOGO CONTAINER === */
         .logo-container {
-        display: flex;
-        justify-content: center;
-        align-items: center;
-        gap: 18px;
-        flex-wrap: wrap;
-        margin-bottom: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 18px;
+            flex-wrap: wrap;
+            margin-bottom: 15px;
         }
 
         .logo-container img {
-        height: 45px;
-        width: auto;
-        object-fit: contain;
-        filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
-        transition: transform 0.3s ease;
+            height: 45px;
+            width: auto;
+            object-fit: contain;
+            filter: drop-shadow(0 2px 4px rgba(0,0,0,0.15));
+            transition: transform 0.3s ease;
         }
 
         .logo-container img:hover {
-        transform: scale(1.05);
+            transform: scale(1.05);
         }
 
         .header-section {
@@ -439,9 +438,10 @@
     </div>
 
     <script>
-        const SESSION_API = 'https://script.google.com/macros/s/AKfycbxrPeXfigqzT5hGSaGHS4zurum2DPPl5-5NYuVHUZ4Aj-Pgr2lJI1SkqHibCdmwvR4/exec';
-        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzcJOF1FYXjwXGxssOUBjQYBQB5Bv1wvLaJbAbMjThfnI2qcnEMNJNU3nUJGHP5xiDY/exec';
-        
+        const SESSION_API = 'https://script.google.com/macros/s/AKfycbwtr25MW86o5xRG6QG_aoD2dyYYgyWWCHg84bkMewFKbb7KgQS696hJKsw-q34l2O9e/exec';
+        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzcjKMhebb_aqZmeqNdNjqKtRMlaZFs0SC0IZ0Qnle75NkhKT-Bie-yMsMq7ue3a0ED/exec';
+        const ENDPOINT_POST = 'https://script.google.com/macros/s/AKfycbzRphUTTEXcD8EEkpLJwCa3x6zIjKlxwVlVHINRYwUVUmAKTtRZOHsRLa-azv7nPtGc/exec';
+
         let sessionData = {};
 
         function showMessage(text, type) {
@@ -460,7 +460,13 @@
         function showError(text) {
             const errorDiv = document.getElementById('errorContainer');
             errorDiv.className = 'error-banner';
-            errorDiv.textContent = text;
+            errorDiv.innerHTML = text;
+            errorDiv.classList.remove('hidden');
+        }
+
+        function hideError() {
+            const errorDiv = document.getElementById('errorContainer');
+            errorDiv.classList.add('hidden');
         }
 
         async function loadSessionData() {
@@ -468,11 +474,7 @@
                 console.log('Loading session data from:', SESSION_API);
                 const response = await fetch(SESSION_API, {
                     method: 'GET',
-                    headers: {
-                        'Accept': 'application/json',
-                    },
-                    mode: 'cors',
-                    cache: 'no-cache'
+                    redirect: 'follow'
                 });
                 
                 if (!response.ok) {
@@ -481,7 +483,14 @@
                 
                 const data = await response.json();
                 console.log('Session data loaded:', data);
-                sessionData = data;
+
+                // tukar array ke object keyed by url
+                sessionData = {};
+                data.forEach(item => {
+                if (item.url) sessionData[item.url.toString()] = item;
+                });
+
+                console.log('Session data mapped:', sessionData);
                 
                 initializeForm();
             } catch (error) {
@@ -494,11 +503,15 @@
             const urlParams = new URLSearchParams(window.location.search);
             const urlParam = urlParams.get('url');
             
+            console.log('URL Parameter:', urlParam);
+            console.log('Available sessions:', Object.keys(sessionData));
+            
             if (!urlParam || !sessionData[urlParam]) {
                 showError('QR Code tidak sah. Sila scan QR Code yang betul untuk sesi kehadiran.');
                 return;
             }
 
+            hideError();
             const data = sessionData[urlParam];
             
             // Set hidden fields
@@ -524,7 +537,7 @@
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Menghantar<span class="loading-spinner"></span>';
             
-            const formData = {
+            const postData = {
                 Nama: document.getElementById('nama').value.trim(),
                 Jabatan: document.getElementById('jabatan').value.trim(),
                 'Trainer/Trainee': document.getElementById('trainer').value,
@@ -534,20 +547,23 @@
             };
             
             try {
-                console.log('Submitting attendance:', formData);
+                console.log('Submitting attendance data:', postData);
                 
-                const response = await fetch(ENDPOINT, {
+                const response = await fetch(ENDPOINT_POST, {
                     method: 'POST',
                     headers: {
-                        'Content-Type': 'application/json',
+                        'Content-Type': 'application/x-www-form-urlencoded'
                     },
-                    body: JSON.stringify(formData)
+                    body: new URLSearchParams({
+                        data: JSON.stringify(postData)
+                    }),
+                    redirect: 'follow'
                 });
                 
-                console.log('Response status:', response.status);
+                console.log('Response received:', response);
                 
                 const sesiName = document.getElementById('sesi').value;
-                showMessage(`✓ Kehadiran anda untuk ${sesiName} telah berjaya direkodkan!`, 'success');
+                showMessage(`✓ Kehadiran anda untuk Sesi ${sesiName} telah berjaya direkodkan!`, 'success');
                 
                 // Reset form
                 document.getElementById('nama').value = '';
