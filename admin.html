@@ -7,14 +7,16 @@
     <title>Admin Portal - Kehadiran</title>
     <link href="https://fonts.googleapis.com/css2?family=League+Spartan:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.5.31/jspdf.plugin.autotable.min.js"></script>
     
-    <script src="auth.js"></script>
+    <script src="js/auth.js"></script>
     <script>
     if (!auth || !auth.isAuthenticated || !auth.isAuthenticated()) {
         window.location.href = 'adminlogin.html';
     }
     </script>
-    
+    <script src="js/logopdf.js"></script>
     <style>
         * {
             box-sizing: border-box;
@@ -205,6 +207,34 @@
             margin-top: 5px;
         }
 
+        .action-buttons {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            justify-content: flex-end;
+        }
+
+        .pdf-btn {
+            padding: 12px 24px;
+            background: linear-gradient(135deg, #d32f2f 0%, #f44336 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-family: 'League Spartan', sans-serif;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .pdf-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(211, 47, 47, 0.3);
+        }
+
         .table-container {
             overflow-x: auto;
             background: white;
@@ -293,6 +323,14 @@
                 width: 100%;
             }
 
+            .action-buttons {
+                flex-direction: column;
+            }
+
+            .pdf-btn, .refresh-btn {
+                width: 100%;
+            }
+
             table {
                 font-size: 14px;
             }
@@ -354,6 +392,13 @@
                     </div>
                 </div>
 
+                <div class="action-buttons">
+                    <button class="pdf-btn" onclick="downloadPDF()">
+                        <span>📄</span>
+                        Muat Turun PDF
+                    </button>
+                </div>
+
                 <div class="table-container">
                     <table>
                         <thead>
@@ -384,6 +429,7 @@
         }
         let sessionData = {};
         let allAttendanceData = {};
+        let currentFilteredData = [];
         
         const SESSION_API = 'https://script.google.com/macros/s/AKfycbxrPeXfigqzT5hGSaGHS4zurum2DPPl5-5NYuVHUZ4Aj-Pgr2lJI1SkqHibCdmwvR4/exec';
         const BASE_URL = 'https://ict-upsiholdings.github.io/sistemkehadiranuhsb/index.html';
@@ -443,7 +489,6 @@
             const sesiFilter = document.getElementById('sesiFilter');
             sesiFilter.innerHTML = '<option value="">Semua Sesi</option>';
             
-            // Populate from attendance data sheets
             Object.keys(allAttendanceData).forEach(sheetName => {
                 const option = document.createElement('option');
                 option.value = sheetName;
@@ -469,11 +514,9 @@
         }
 
         function generateQRCodes() {
-            // const BASE_URL = "https://ict-upsiholdings.github.io/sistemkehadiranuhsb/";
             const grid = document.getElementById('qrGrid');
             grid.innerHTML = '';
 
-            // Jika tiada data sesi
             if (!sessionData || Object.keys(sessionData).length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; color: white; padding: 40px;">
@@ -483,11 +526,10 @@
                 return;
             }
 
-            // Tukar sessionData jadi array dan loop ikut index
             const keys = Object.keys(sessionData);
             keys.forEach((key, index) => {
                 const data = sessionData[key];
-                const sesiNumber = index + 1; // 👈 mula dari 1
+                const sesiNumber = index + 1;
                 const url = `${BASE_URL}?url=${sesiNumber}`;
 
                 const card = document.createElement('div');
@@ -505,7 +547,6 @@
                 `;
                 grid.appendChild(card);
 
-                // Jana QR selepas card dimasukkan
                 setTimeout(() => {
                     new QRCode(document.getElementById(`qr${sesiNumber}`), {
                         text: url,
@@ -556,14 +597,11 @@
                 const data = await response.json();
                 console.log('Attendance data loaded:', data);
                 
-                // Store the original structure with sheet names
                 allAttendanceData = data;
-                
-                // Populate filter dropdown with sheet names
                 populateSesiFilter();
                 
-                // Display all data initially
                 const flattenedData = flattenAttendanceData(allAttendanceData);
+                currentFilteredData = flattenedData;
                 displayAttendanceData(flattenedData);
                 updateStats(flattenedData);
             } catch (error) {
@@ -636,18 +674,14 @@
 
             let filtered = [];
 
-            // Filter by selected sheet (Sesi)
             if (sesiFilter) {
-                // Get data from specific sheet only
                 if (allAttendanceData[sesiFilter] && Array.isArray(allAttendanceData[sesiFilter])) {
                     filtered = [...allAttendanceData[sesiFilter]];
                 }
             } else {
-                // Get all data from all sheets
                 filtered = flattenAttendanceData(allAttendanceData);
             }
 
-            // Further filter by search term
             if (searchTerm) {
                 filtered = filtered.filter(r => 
                     (r.Nama && r.Nama.toLowerCase().includes(searchTerm)) ||
@@ -655,9 +689,175 @@
                 );
             }
 
+            currentFilteredData = filtered;
             displayAttendanceData(filtered);
             updateStats(filtered);
         }
+
+       async function downloadPDF() {
+    if (currentFilteredData.length === 0) {
+        alert('Tiada data untuk dimuat turun.');
+        return;
+    }
+
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF();
+
+    // === 🧩 Header: 1 gambar penuh (banner/logo gabungan) ===
+const headerImage = logosBase64.header; // ambil dari logopdf.js
+
+async function addHeaderImage(doc, src, x, y, maxWidth) {
+  try {
+    let imgData;
+    if (src.startsWith('data:image')) {
+      imgData = src;
+    } else {
+      const response = await fetch(src);
+      const blob = await response.blob();
+      const reader = new FileReader();
+      imgData = await new Promise((resolve) => {
+        reader.onloadend = () => resolve(reader.result);
+        reader.readAsDataURL(blob);
+      });
+    }
+
+    // Dapatkan saiz sebenar → maintain aspect ratio
+    const props = doc.getImageProperties(imgData);
+    const ratio = props.width / props.height;
+    const h = maxWidth / ratio;
+
+    doc.addImage(imgData, 'PNG', x, y, maxWidth, h);
+    return h; // supaya boleh kira Y seterusnya bawah gambar
+  } catch (e) {
+    console.warn('Gagal tambah header:', e);
+    return 0;
+  }
+}
+
+// Tambah header di atas
+const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
+
+
+
+    // === 🧾 Tajuk & info laporan ===
+    const textStartY = 45; // letak bawah logo
+    doc.setFontSize(18);
+    doc.setFont(undefined, 'bold');
+    doc.text('Laporan Kehadiran', 14, textStartY);
+
+    doc.setFontSize(11);
+    doc.setFont(undefined, 'normal');
+    doc.text('Sistem Pengurusan Kehadiran UHSB', 14, textStartY + 8);
+
+    // Tarikh semasa
+    const currentDate = new Date().toLocaleString('ms-MY', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+    doc.setFontSize(9);
+    doc.text(`Dijana pada: ${currentDate}`, 14, textStartY + 16);
+
+    // === 📋 Info penapis (filter) ===
+    const sesiFilter = document.getElementById('sesiFilter').value;
+    const searchTerm = document.getElementById('searchInput').value;
+    let yPos = textStartY + 25;
+
+    if (sesiFilter) {
+        doc.text(`Sesi: ${sesiFilter}`, 14, yPos);
+        yPos += 5;
+    }
+    if (searchTerm) {
+        doc.text(`Carian: ${searchTerm}`, 14, yPos);
+        yPos += 5;
+    }
+
+    // === 📊 Statistik ===
+    yPos += 3;
+    doc.setFontSize(10);
+    doc.setFont(undefined, 'bold');
+    doc.text('Statistik:', 14, yPos);
+    doc.setFont(undefined, 'normal');
+    yPos += 6;
+    doc.text(`Jumlah Kehadiran: ${currentFilteredData.length}`, 14, yPos);
+    yPos += 5;
+    doc.text(`UPSI: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'UPSI').length}`, 14, yPos);
+    yPos += 5;
+    doc.text(`UNIMAS: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'UNIMAS').length}`, 14, yPos);
+
+    // === 📑 Sediakan jadual ===
+    const tableData = currentFilteredData.map((record, index) => [
+        index + 1,
+        record.Nama || '-',
+        record.Jabatan || '-',
+        record['Trainer/Trainee'] || '-',
+        record.Sesi || '-',
+        record.Modul || '-',
+        record['Tarikh & Masa'] || '-'
+    ]);
+
+    doc.autoTable({
+        startY: yPos + 8,
+        head: [['No.', 'Nama', 'Jabatan', 'Trainer/Trainee', 'Sesi', 'Modul', 'Tarikh & Masa']],
+        body: tableData,
+        theme: 'striped',
+        headStyles: {
+            fillColor: [26, 35, 80],
+            textColor: 255,
+            fontStyle: 'bold',
+            fontSize: 9
+        },
+        bodyStyles: {
+            fontSize: 8
+        },
+        alternateRowStyles: {
+            fillColor: [245, 245, 245]
+        },
+        margin: { top: 10, left: 14, right: 14 },
+        styles: {
+            cellPadding: 3,
+            overflow: 'linebreak',
+            fontSize: 8
+        },
+        columnStyles: {
+            0: { cellWidth: 10 },
+            1: { cellWidth: 30 },
+            2: { cellWidth: 30 },
+            3: { cellWidth: 25 },
+            4: { cellWidth: 20 },
+            5: { cellWidth: 35 },
+            6: { cellWidth: 32 }
+        },
+        // === 🕒 Tambah tarikh + nombor halaman di setiap muka surat ===
+        didDrawPage: (data) => {
+            const pageCount = doc.internal.getNumberOfPages();
+            const pageSize = doc.internal.pageSize;
+            const pageWidth = pageSize.getWidth();
+            const pageHeight = pageSize.getHeight();
+
+            // Tarikh di header (kanan atas)
+            doc.setFontSize(8);
+            doc.text(currentDate, pageWidth - 60, 10);
+
+            // Page number di footer
+            doc.setFontSize(9);
+            doc.text(
+                `Halaman ${data.pageNumber} / ${pageCount}`,
+                pageWidth / 2,
+                pageHeight - 8,
+                { align: 'center' }
+            );
+        }
+    });
+
+    // === 💾 Simpan fail ===
+    const filename = sesiFilter 
+        ? `Kehadiran_${sesiFilter}_${new Date().getTime()}.pdf`
+        : `Kehadiran_Semua_${new Date().getTime()}.pdf`;
+    doc.save(filename);
+}
 
         // Initialize on page load
         document.addEventListener('DOMContentLoaded', () => {
