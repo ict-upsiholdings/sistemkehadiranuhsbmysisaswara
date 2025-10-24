@@ -386,7 +386,7 @@
         let allAttendanceData = {};
         
         const SESSION_API = 'https://script.google.com/macros/s/AKfycbxrPeXfigqzT5hGSaGHS4zurum2DPPl5-5NYuVHUZ4Aj-Pgr2lJI1SkqHibCdmwvR4/exec';
-        const BASE_URL = 'https://kehadiran.com/attendance.html';
+        const BASE_URL = 'https://ict-upsiholdings.github.io/sistemkehadiranuhsb/index.html';
         const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzcJOF1FYXjwXGxssOUBjQYBQB5Bv1wvLaJbAbMjThfnI2qcnEMNJNU3nUJGHP5xiDY/exec';
 
         async function loadSessionData() {
@@ -469,10 +469,12 @@
         }
 
         function generateQRCodes() {
+            // const BASE_URL = "https://ict-upsiholdings.github.io/sistemkehadiranuhsb/";
             const grid = document.getElementById('qrGrid');
             grid.innerHTML = '';
 
-            if (Object.keys(sessionData).length === 0) {
+            // Jika tiada data sesi
+            if (!sessionData || Object.keys(sessionData).length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; color: white; padding: 40px;">
                         Tiada data sesi tersedia.
@@ -481,27 +483,31 @@
                 return;
             }
 
-            Object.keys(sessionData).forEach(key => {
+            // Tukar sessionData jadi array dan loop ikut index
+            const keys = Object.keys(sessionData);
+            keys.forEach((key, index) => {
                 const data = sessionData[key];
-                const url = `${BASE_URL}?url=${key}`;
+                const sesiNumber = index + 1; // 👈 mula dari 1
+                const url = `${BASE_URL}?url=${sesiNumber}`;
 
                 const card = document.createElement('div');
                 card.className = 'qr-card';
                 card.innerHTML = `
-                    <h3>${data.url}</h3>
+                    <h3>Sesi ${sesiNumber}</h3>
                     <div class="details">
-                        <strong>${data.modul}</strong><br>
-                        ${data.tarikhMasa}
+                        <strong>${data.modul || '-'}</strong><br>
+                        ${data.tarikhMasa || '-'}
                     </div>
-                    <div class="qr-code-container" id="qr${key}"></div>
-                    <button class="download-btn" onclick="downloadQR('qr${key}', 'QR_Sesi_${key}')">
+                    <div class="qr-code-container" id="qr${sesiNumber}"></div>
+                    <button class="download-btn" onclick="downloadQR('qr${sesiNumber}', 'QR_Sesi_${sesiNumber}')">
                         Muat Turun QR Code
                     </button>
                 `;
                 grid.appendChild(card);
 
+                // Jana QR selepas card dimasukkan
                 setTimeout(() => {
-                    new QRCode(document.getElementById(`qr${key}`), {
+                    new QRCode(document.getElementById(`qr${sesiNumber}`), {
                         text: url,
                         width: 200,
                         height: 200,
