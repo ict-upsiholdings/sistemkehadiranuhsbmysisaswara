@@ -344,8 +344,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Admin Portal</h1>
-            <p class="subtitle">Sistem Pengurusan Kehadiran</p>
+            <h1>Admin Portal Sistem Kehadiran</h1>
+            <p class="subtitle">Dicipta oleh UPSI Holdings Sdn. Bhd.</p>
             <button class="refresh-btn" style="float:right;" onclick="logout()">Log Keluar</button>
         </div>
 
@@ -514,9 +514,11 @@
         }
 
         function generateQRCodes() {
+            // const BASE_URL = "https://ict-upsiholdings.github.io/sistemkehadiranuhsb/";
             const grid = document.getElementById('qrGrid');
             grid.innerHTML = '';
 
+            // Jika tiada data sesi
             if (!sessionData || Object.keys(sessionData).length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; color: white; padding: 40px;">
@@ -526,10 +528,11 @@
                 return;
             }
 
+            // Tukar sessionData jadi array dan loop ikut index
             const keys = Object.keys(sessionData);
             keys.forEach((key, index) => {
                 const data = sessionData[key];
-                const sesiNumber = index + 1;
+                const sesiNumber = index + 1; // 👈 mula dari 1
                 const url = `${BASE_URL}?url=${sesiNumber}`;
 
                 const card = document.createElement('div');
@@ -547,6 +550,7 @@
                 `;
                 grid.appendChild(card);
 
+                // Jana QR selepas card dimasukkan
                 setTimeout(() => {
                     new QRCode(document.getElementById(`qr${sesiNumber}`), {
                         text: url,
