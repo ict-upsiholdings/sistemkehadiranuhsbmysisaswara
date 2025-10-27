@@ -12,8 +12,8 @@
     
     <script src="js/auth.js"></script>
     <script>
-    if (!auth || !auth.isAuthenticated || !auth.isAuthenticated()) {
-        window.location.href = 'adminlogin.html';
+    if (sessionStorage.getItem('isLoggedIn') !== 'true') {
+        window.location.href = "adminlogin.html";
     }
     </script>
     <script src="js/logopdf.js"></script>
@@ -344,8 +344,8 @@
 <body>
     <div class="container">
         <div class="header">
-            <h1>Admin Portal</h1>
-            <p class="subtitle">Sistem Pengurusan Kehadiran</p>
+            <h1>Admin Portal Sistem Kehadiran</h1>
+            <p class="subtitle">Dicipta oleh UPSI Holdings Sdn. Bhd.</p>
             <button class="refresh-btn" style="float:right;" onclick="logout()">Log Keluar</button>
         </div>
 
@@ -431,9 +431,9 @@
         let allAttendanceData = {};
         let currentFilteredData = [];
         
-        const SESSION_API = 'https://script.google.com/macros/s/AKfycbxrPeXfigqzT5hGSaGHS4zurum2DPPl5-5NYuVHUZ4Aj-Pgr2lJI1SkqHibCdmwvR4/exec';
+        const SESSION_API = 'https://script.google.com/macros/s/AKfycbwYFzLPOqPvUGMkJ7KGV_4K8_PUEZAuAp74mIdueuVef4SzHQoszYT1AXjOPFCvR_rs/exec';
         const BASE_URL = 'https://ict-upsiholdings.github.io/sistemkehadiranuhsb/index.html';
-        const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzcJOF1FYXjwXGxssOUBjQYBQB5Bv1wvLaJbAbMjThfnI2qcnEMNJNU3nUJGHP5xiDY/exec';
+        const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWCW5Ete8mGBcsMbnpWl6tl1HDYxxavfUJ3HErJN8-2jeC6XBmXmupEXb5g-nhMXQT/exec';
 
         async function loadSessionData() {
             try {
@@ -517,6 +517,7 @@
             const grid = document.getElementById('qrGrid');
             grid.innerHTML = '';
 
+            // Jika tiada data sesi
             if (!sessionData || Object.keys(sessionData).length === 0) {
                 grid.innerHTML = `
                     <div style="grid-column: 1/-1; text-align: center; color: white; padding: 40px;">
@@ -547,6 +548,7 @@
                 `;
                 grid.appendChild(card);
 
+                // Jana QR selepas card dimasukkan
                 setTimeout(() => {
                     new QRCode(document.getElementById(`qr${sesiNumber}`), {
                         text: url,
@@ -647,17 +649,36 @@
                 return;
             }
 
-            tbody.innerHTML = data.map((record, index) => `
+            // Format tarikh & masa jika wujud
+            tbody.innerHTML = data.map((record, index) => {
+            // Format tarikh & masa jika wujud
+            let timestamp = '-';
+            if (record['Timestamp']) {
+                const date = new Date(record['Timestamp']);
+                timestamp = date.toLocaleString('ms-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).replace(',', ''); // buang koma selepas tarikh
+            }
+
+            return `
                 <tr>
                     <td>${index + 1}</td>
                     <td>${record.Nama || '-'}</td>
                     <td>${record.Jabatan || '-'}</td>
                     <td>${record['Trainer/Trainee'] || '-'}</td>
-                    <td>${record.Sesi || '-'}</td>
-                    <td>${record.Modul || '-'}</td>
                     <td>${record['Tarikh & Masa'] || '-'}</td>
+                    <td>${record.Modul || '-'}</td>
+                    <td>${timestamp}</td>
                 </tr>
-            `).join('');
+            `;
+        }).join('');
         }
 
         function updateStats(data) {
@@ -743,11 +764,11 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     const textStartY = 45; // letak bawah logo
     doc.setFontSize(18);
     doc.setFont(undefined, 'bold');
-    doc.text('Laporan Kehadiran', 14, textStartY);
+    doc.text('Laporan Kehadiran Sistem Pengurusan Kehadiran UHSB', 14, textStartY);
 
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text('Sistem Pengurusan Kehadiran UHSB', 14, textStartY + 8);
+    doc.text('Kehadiran Sesi Latihan Sesi 4 MyFIS NEO@UNIMAS', 14, textStartY + 8);
 
     // Tarikh semasa
     const currentDate = new Date().toLocaleString('ms-MY', {
@@ -766,8 +787,22 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     let yPos = textStartY + 25;
 
     if (sesiFilter) {
-        doc.text(`Sesi: ${sesiFilter}`, 14, yPos);
+        // Cari data sesi untuk dapatkan modul dan tarikh
+        const sesiData = sessionData[data.sesiFilter];
+        
+        doc.text(`Sesi: ${sesiFilter} ${sesiData}`, 14, yPos);
         yPos += 5;
+        
+        if (sesiData) {
+            if (sesiData.modul) {
+                doc.text(`Modul: ${sesiData.modul}`, 14, yPos);
+                yPos += 5;
+            }
+            if (sesiData.tarikhMasa) {
+                doc.text(`Tarikh & Masa: ${sesiData.tarikhMasa}`, 14, yPos);
+                yPos += 5;
+            }
+        }
     }
     if (searchTerm) {
         doc.text(`Carian: ${searchTerm}`, 14, yPos);
@@ -788,15 +823,33 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     doc.text(`UNIMAS: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'UNIMAS').length}`, 14, yPos);
 
     // === 📑 Sediakan jadual ===
-    const tableData = currentFilteredData.map((record, index) => [
-        index + 1,
-        record.Nama || '-',
-        record.Jabatan || '-',
-        record['Trainer/Trainee'] || '-',
-        record.Sesi || '-',
-        record.Modul || '-',
-        record['Tarikh & Masa'] || '-'
-    ]);
+    const tableData = currentFilteredData.map((record, index) => {
+        // Format tarikh
+        let timestamp = '-';
+        if (record['Timestamp']) {
+            const date = new Date(record['Timestamp']);
+            timestamp = date.toLocaleString('ms-MY', {
+                timeZone: 'Asia/Kuala_Lumpur',
+                day: '2-digit',
+                month: '2-digit',
+                year: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit',
+                second: '2-digit',
+                hour12: true
+            }).replace(',', '');
+        }
+
+        return [
+            index + 1,
+            record.Nama || '-',
+            record.Jabatan || '-',
+            record['Trainer/Trainee'] || '-',
+            record['Tarikh & Masa'] || '-',
+            record.Modul || '-',
+            timestamp
+        ];
+    });
 
     doc.autoTable({
         startY: yPos + 8,

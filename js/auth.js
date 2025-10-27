@@ -18,7 +18,3 @@ function login() {
     errorBox.style.display = 'block';
   }
 }
-
-if (sessionStorage.getItem('isLoggedIn') === 'true') {
-  window.location.href = "admin.html";
-}

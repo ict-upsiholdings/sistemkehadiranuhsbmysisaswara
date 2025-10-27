@@ -139,6 +139,7 @@
 
         .form-group {
             margin-bottom: 15px;
+            position: relative;
         }
 
         label {
@@ -203,6 +204,73 @@
             background-position: right 10px center;
             background-size: 18px;
             padding-right: 40px;
+        }
+
+        select:disabled {
+            background-color: #F3F4F6;
+            color: #6B7280;
+            cursor: not-allowed;
+            border-color: #E5E7EB;
+        }
+
+        .name-dropdown {
+            position: absolute;
+            width: 100%;
+            max-height: 250px;
+            overflow-y: auto;
+            background: white;
+            border: 2px solid #1FA2FF;
+            border-top: none;
+            border-radius: 0 0 10px 10px;
+            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
+            z-index: 1000;
+            display: none;
+            margin-top: -2px;
+        }
+
+        .name-dropdown.show {
+            display: block;
+        }
+
+        .name-option {
+            padding: 12px 13px;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            border-bottom: 1px solid #F3F4F6;
+            font-size: 14px;
+        }
+
+        .name-option:last-child {
+            border-bottom: none;
+        }
+
+        .name-option:hover {
+            background: #EFF6FF;
+        }
+
+        .name-option.active {
+            background: #DBEAFE;
+        }
+
+        .name-option .category {
+            font-size: 11px;
+            color: #6B7280;
+            margin-left: 8px;
+            font-weight: 500;
+        }
+
+        .add-new-name {
+            padding: 12px 13px;
+            background: #F9FAFB;
+            color: #1FA2FF;
+            font-weight: 600;
+            cursor: pointer;
+            transition: background 0.2s ease;
+            font-size: 14px;
+        }
+
+        .add-new-name:hover {
+            background: #EFF6FF;
         }
 
         .submit-btn {
@@ -286,6 +354,12 @@
             background: #FEE2E2;
             color: #991B1B;
             border: 2px solid #FCA5A5;
+        }
+
+        .warning {
+            background: #FEF3C7;
+            color: #92400E;
+            border: 2px solid #FCD34D;
         }
 
         .hidden {
@@ -384,8 +458,8 @@
         </div>
 
         <div class="header-section">
-            <h1 class="form-title">Borang Kehadiran</h1>
-            <p class="form-subtitle">Sistem Pengurusan Kehadiran</p>
+            <h1 class="form-title">Sistem Kehadiran</h1>
+            <p class="form-subtitle">Dicipta oleh UPSI Holdings Sdn. Bhd.</p>
         </div>
         
         <div id="errorContainer" class="hidden"></div>
@@ -408,8 +482,9 @@
 
         <form id="attendanceForm" class="hidden">
             <div class="form-group">
-                <label for="nama">Nama <span class="required">*</span></label>
-                <input type="text" id="nama" name="nama" placeholder="Masukkan nama penuh" required>
+                <label for="namaInput">Nama <span class="required">*</span></label>
+                <input type="text" id="namaInput" name="nama" placeholder="Taip untuk cari nama atau tambah nama baru" required autocomplete="off">
+                <div id="nameDropdown" class="name-dropdown"></div>
             </div>
 
             <div class="form-group">
@@ -439,11 +514,15 @@
     </div>
 
     <script>
-        const SESSION_API = 'https://script.google.com/macros/s/AKfycbwtr25MW86o5xRG6QG_aoD2dyYYgyWWCHg84bkMewFKbb7KgQS696hJKsw-q34l2O9e/exec';
-        const ENDPOINT = 'https://script.google.com/macros/s/AKfycbzcjKMhebb_aqZmeqNdNjqKtRMlaZFs0SC0IZ0Qnle75NkhKT-Bie-yMsMq7ue3a0ED/exec';
+        const SESSION_API   = 'https://script.google.com/macros/s/AKfycbwYFzLPOqPvUGMkJ7KGV_4K8_PUEZAuAp74mIdueuVef4SzHQoszYT1AXjOPFCvR_rs/exec';
+        const NAMES_API     = 'https://script.google.com/macros/s/AKfycbyXpcRl33CyED-n1c1GFBMZhPCFLRZvlkg7x8XUaeycNphGn10iuJzbfMAXp6HTG8Ob/exec';
+        const ENDPOINT      = 'https://script.google.com/macros/s/AKfycbzWCW5Ete8mGBcsMbnpWl6tl1HDYxxavfUJ3HErJN8-2jeC6XBmXmupEXb5g-nhMXQT/exec';
         const ENDPOINT_POST = 'https://script.google.com/macros/s/AKfycbzRphUTTEXcD8EEkpLJwCa3x6zIjKlxwVlVHINRYwUVUmAKTtRZOHsRLa-azv7nPtGc/exec';
-
+        
         let sessionData = {};
+        let namesData = [];
+        let isCustomName = false;
+        let allAttendanceData = [];
 
         function showMessage(text, type) {
             const messageDiv = document.getElementById('message');
@@ -500,6 +579,64 @@
             }
         }
 
+        async function loadNamesData() {
+            try {
+                console.log('Loading names data from:', NAMES_API);
+                const response = await fetch(NAMES_API, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                namesData = await response.json();
+                console.log('Names data loaded:', namesData);
+            } catch (error) {
+                console.error('Error loading names data:', error);
+                namesData = [];
+            }
+        }
+
+        async function loadAttendanceData() {
+            try {
+                console.log('Loading attendance data from:', ENDPOINT);
+                const response = await fetch(`${ENDPOINT}?action=getAttendance`, {
+                    method: 'GET',
+                    redirect: 'follow'
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status}`);
+                }
+                
+                const data = await response.json();
+                console.log('Attendance data loaded:', data);
+                
+                // Flatten all attendance data
+                allAttendanceData = [];
+                Object.keys(data).forEach(sheetName => {
+                    if (Array.isArray(data[sheetName])) {
+                        allAttendanceData = allAttendanceData.concat(data[sheetName]);
+                    }
+                });
+                
+                console.log('Flattened attendance data:', allAttendanceData);
+            } catch (error) {
+                console.error('Error loading attendance data:', error);
+                allAttendanceData = [];
+            }
+        }
+
+        function checkDuplicate(nama, sesi) {
+            const duplicate = allAttendanceData.find(record => 
+                record.Nama && record.Nama.toLowerCase().trim() === nama.toLowerCase().trim() &&
+                record.Sesi && record.Sesi.toString() === sesi.toString()
+            );
+            return duplicate;
+        }
+
         function initializeForm() {
             const urlParams = new URLSearchParams(window.location.search);
             const urlParam = urlParams.get('url');
@@ -515,18 +652,109 @@
             hideError();
             const data = sessionData[urlParam];
             
-            // Set hidden fields
             document.getElementById('sesi').value = data.sesi;
             document.getElementById('modul').value = data.modul;
             document.getElementById('tarikh').value = data.tarikhMasa;
             
-            // Display session info
-            document.getElementById('displaySesi').textContent = data.sesi;
+            document.getElementById('displaySesi').textContent = urlParam;
             document.getElementById('displayModul').textContent = data.modul;
             document.getElementById('displayTarikh').textContent = data.tarikhMasa;
             
             document.getElementById('sessionInfoBox').classList.remove('hidden');
             document.getElementById('attendanceForm').classList.remove('hidden');
+            
+            setupNameAutocomplete();
+        }
+
+        function setupNameAutocomplete() {
+            const namaInput = document.getElementById('namaInput');
+            const dropdown = document.getElementById('nameDropdown');
+            const trainerSelect = document.getElementById('trainer');
+            let selectedIndex = -1;
+
+            namaInput.addEventListener('input', function() {
+                const searchTerm = this.value.toLowerCase().trim();
+                
+                if (searchTerm.length === 0) {
+                    dropdown.classList.remove('show');
+                    isCustomName = false;
+                    trainerSelect.value = '';
+                    trainerSelect.disabled = false;
+                    return;
+                }
+
+                const filtered = namesData.filter(item => 
+                    item.Nama.toLowerCase().includes(searchTerm)
+                );
+
+                if (filtered.length === 0) {
+                    dropdown.innerHTML = `<div class="add-new-name">✓ Tambah nama baru: "${this.value}"</div>`;
+                    dropdown.classList.add('show');
+                    isCustomName = true;
+                    trainerSelect.value = '';
+                    trainerSelect.disabled = false;
+                } else {
+                    let html = '';
+                    filtered.forEach((item, index) => {
+                        html += `<div class="name-option" data-index="${index}" data-name="${item.Nama}" data-trainer="${item['Trainer/Trainee']}">
+                            ${item.Nama} <span class="category">(${item['Trainer/Trainee']})</span>
+                        </div>`;
+                    });
+                    dropdown.innerHTML = html;
+                    dropdown.classList.add('show');
+                    isCustomName = false;
+                    selectedIndex = -1;
+                }
+            });
+
+            namaInput.addEventListener('keydown', function(e) {
+                const options = dropdown.querySelectorAll('.name-option');
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, options.length - 1);
+                    updateSelection(options);
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, -1);
+                    updateSelection(options);
+                } else if (e.key === 'Enter' && selectedIndex >= 0 && options.length > 0) {
+                    e.preventDefault();
+                    options[selectedIndex].click();
+                }
+            });
+
+            function updateSelection(options) {
+                options.forEach((opt, idx) => {
+                    opt.classList.toggle('active', idx === selectedIndex);
+                });
+                if (selectedIndex >= 0) {
+                    options[selectedIndex].scrollIntoView({ block: 'nearest' });
+                }
+            }
+
+            dropdown.addEventListener('click', function(e) {
+                const option = e.target.closest('.name-option');
+                const addNew = e.target.closest('.add-new-name');
+                
+                if (option) {
+                    namaInput.value = option.dataset.name;
+                    trainerSelect.value = option.dataset.trainer;
+                    trainerSelect.disabled = true;
+                    dropdown.classList.remove('show');
+                    isCustomName = false;
+                } else if (addNew) {
+                    dropdown.classList.remove('show');
+                    isCustomName = true;
+                    trainerSelect.disabled = false;
+                }
+            });
+
+            document.addEventListener('click', function(e) {
+                if (!namaInput.contains(e.target) && !dropdown.contains(e.target)) {
+                    dropdown.classList.remove('show');
+                }
+            });
         }
 
         document.getElementById('attendanceForm').addEventListener('submit', async function(e) {
@@ -534,6 +762,16 @@
             
             const submitBtn = document.getElementById('submitBtn');
             const originalText = submitBtn.innerHTML;
+            
+            const nama = document.getElementById('namaInput').value.trim();
+            const sesi = document.getElementById('sesi').value;
+            
+            // Check duplicate
+            const duplicate = checkDuplicate(nama, sesi);
+            if (duplicate) {
+                showMessage(`⚠️ Kehadiran untuk "${nama}" di Sesi ${sesi} sudah direkodkan dalam database!`, 'warning');
+                return;
+            }
             
             submitBtn.disabled = true;
             submitBtn.innerHTML = 'Menghantar<span class="loading-spinner"></span>';
@@ -543,10 +781,10 @@
 
             const postData = {
                 url: urlParam,
-                Nama: document.getElementById('nama').value.trim(),
+                Nama: nama,
                 Jabatan: document.getElementById('jabatan').value.trim(),
                 'Trainer/Trainee': document.getElementById('trainer').value,
-                Sesi: document.getElementById('sesi').value,
+                Sesi: sesi,
                 Modul: document.getElementById('modul').value,
                 'Tarikh & Masa': document.getElementById('tarikh').value
             };
@@ -570,13 +808,17 @@
                 const result = await response.json();
         
                 if (result.status === 'success') {
-                    const sesiName = document.getElementById('sesi').value;
-                    showMessage(`✓ Kehadiran anda untuk Sesi ${sesiName} telah berjaya direkodkan!`, 'success');
+                    showMessage(`✓ Kehadiran anda untuk Sesi ${sesi} telah berjaya direkodkan!`, 'success');
+                    
+                    // Add to local attendance data
+                    allAttendanceData.push(postData);
                     
                     // Reset form
-                    document.getElementById('nama').value = '';
+                    document.getElementById('namaInput').value = '';
                     document.getElementById('jabatan').value = '';
                     document.getElementById('trainer').value = '';
+                    document.getElementById('trainer').disabled = false;
+                    isCustomName = false;
                 } else {
                     showMessage('✗ ' + (result.message || 'Ralat tidak diketahui'), 'error');
                 }

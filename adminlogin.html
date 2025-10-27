@@ -193,6 +193,10 @@
       pw.type = isText ? 'password' : 'text';
       toggle.textContent = isText ? 'Tunjuk' : 'Sembunyi';
     });
+
+    if (sessionStorage.getItem('isLoggedIn') === 'true') {
+      window.location.href = "admin.html";
+    }
   </script>
 
 </body>
