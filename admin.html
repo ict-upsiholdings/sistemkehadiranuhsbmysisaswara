@@ -514,6 +514,7 @@
         }
 
         function generateQRCodes() {
+            // const BASE_URL = "https://ict-upsiholdings.github.io/sistemkehadiranuhsb/";
             const grid = document.getElementById('qrGrid');
             grid.innerHTML = '';
 
@@ -527,10 +528,11 @@
                 return;
             }
 
+            // Tukar sessionData jadi array dan loop ikut index
             const keys = Object.keys(sessionData);
             keys.forEach((key, index) => {
                 const data = sessionData[key];
-                const sesiNumber = index + 1;
+                const sesiNumber = index + 1; // 👈 mula dari 1
                 const url = `${BASE_URL}?url=${sesiNumber}`;
 
                 const card = document.createElement('div');
