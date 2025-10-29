@@ -398,6 +398,39 @@
             margin-left: 8px;
         }
 
+        .loading-section {
+            text-align: center;
+            color: #1A2350;
+            font-weight: 600;
+            margin-bottom: 20px;
+            font-size: 14px;
+            animation: fadeIn 0.5s ease-in-out;
+        }
+
+        .loading-section p {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loading-section::after {
+            content: "";
+            display: inline-block;
+            width: 14px;
+            height: 14px;
+            border: 3px solid rgba(26, 35, 80, 0.3);
+            border-top-color: #1A2350;
+            border-radius: 50%;
+            margin-left: 8px;
+            animation: spin 1s linear infinite;
+        }
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(-5px); }
+    to { opacity: 1; transform: translateY(0); }
+}
+
+
         @keyframes spin {
             to { transform: rotate(360deg); }
         }
@@ -458,9 +491,13 @@
 
         <div class="header-section">
             <h1 class="form-title">Sistem Kehadiran</h1>
-            <p class="form-subtitle">Hak Cipta UPSI Holdings Sdn. Bhd.</p>
+            <p class="form-subtitle"> Hak Cipta UPSI Holdings Sdn. Bhd.</p>
         </div>
         
+        <div id="loadingMessage" class="loading-section">
+            <p>⚙️ Sedang memuatkan sesi, sila tunggu sebentar...</p>
+        </div>
+
         <div id="errorContainer" class="hidden"></div>
 
         <div id="sessionInfoBox" class="session-info hidden">
@@ -496,7 +533,7 @@
                 <select id="trainer" name="trainer" required>
                     <option value="">Pilih kategori...</option>
                     <option value="UPSI">UPSI</option>
-                    <option value="ASWARA">ASWARA</option>
+                    <option value="UNIMAS">UNIMAS</option>
                 </select>
             </div>
 
@@ -517,7 +554,7 @@
         const NAMES_API     = 'https://script.google.com/macros/s/AKfycbw84uICx1SDhLISUjT7waNAOr3dBIvd8v11IKP2UgJ55fEJVIbAShzNECZL-pFT0OPVOg/exec';
         const ENDPOINT      = 'https://script.google.com/macros/s/AKfycbx4qe8VJBqnJMTL6wPgz2G-lgRmz8wGsMAbUywrpcOc4m1EOOIHWoB1Uq7-qcyd65Sc/exec';
         const ENDPOINT_POST = 'https://script.google.com/macros/s/AKfycbxbJRtjIlmgk3t84bZrAaTvSGLsTuTK9bNNdqu0jghP94CpPfTmqxqu3myLo8iCjZH3Jw/exec';
-        
+
         let sessionData = {};
         let namesData = [];
         let isCustomName = false;
@@ -550,6 +587,9 @@
 
         async function loadSessionData() {
             try {
+                // Tunjuk loading
+                document.getElementById('loadingMessage').style.display = 'block';
+
                 console.log('Loading session data from:', SESSION_API);
                 const response = await fetch(SESSION_API, {
                     method: 'GET',
@@ -563,18 +603,23 @@
                 const data = await response.json();
                 console.log('Session data loaded:', data);
 
-                // tukar array ke object keyed by url
                 sessionData = {};
                 data.forEach(item => {
-                if (item.url) sessionData[item.url.toString()] = item;
+                    if (item.url) sessionData[item.url.toString()] = item;
                 });
 
                 console.log('Session data mapped:', sessionData);
                 
+                await loadNamesData();
+                await loadAttendanceData();
                 initializeForm();
+
+                // Sembunyikan loading bila siap
+                document.getElementById('loadingMessage').style.display = 'none';
             } catch (error) {
                 console.error('Error loading session data:', error);
                 showError('Ralat memuatkan data sesi. Sila hubungi pentadbir.');
+                document.getElementById('loadingMessage').style.display = 'none';
             }
         }
 
@@ -600,8 +645,8 @@
 
         async function loadAttendanceData() {
             try {
-                console.log('Loading attendance data from:', ENDPOINT);
-                const response = await fetch(`${ENDPOINT}?action=getAttendance`, {
+                console.log('Loading attendance data from:', API_ENDPOINT);
+                const response = await fetch(`${API_ENDPOINT}?action=getAttendance`, {
                     method: 'GET',
                     redirect: 'follow'
                 });
