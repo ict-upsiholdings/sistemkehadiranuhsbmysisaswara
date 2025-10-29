@@ -453,7 +453,7 @@
         <div class="logo-container">
             <img src="img/UPSI-&-100-Tahun.png" alt="UPSI">
             <img src="img/UHSB.png" alt="UHSB">
-            <img src="img/ASWARA.png" alt="UNIMAS">
+            <img src="img/ASWARA.png" alt="ASWARA">
         </div>
 
         <div class="header-section">
@@ -496,7 +496,7 @@
                 <select id="trainer" name="trainer" required>
                     <option value="">Pilih kategori...</option>
                     <option value="UPSI">UPSI</option>
-                    <option value="UNIMAS">UNIMAS</option>
+                    <option value="ASWARA">ASWARA</option>
                 </select>
             </div>
 
@@ -693,13 +693,15 @@
                     dropdown.innerHTML = `<div class="add-new-name">✓ Tambah nama baru: "${this.value}"</div>`;
                     dropdown.classList.add('show');
                     isCustomName = true;
+                    jabatanSelect.value = '';
+                    jabatanSelect.disabled = false;
                     trainerSelect.value = '';
                     trainerSelect.disabled = false;
                 } else {
                     let html = '';
                     filtered.forEach((item, index) => {
-                        html += `<div class="name-option" data-index="${index}" data-name="${item.Nama}" data-jabatan="${item['Jabatan']} data-trainer="${item['Trainer/Trainee']}">
-                            ${item.Nama} ${item['Jabatan']} <span class="category">(${item['Trainer/Trainee']})</span>
+                        html += `<div class="name-option" data-index="${index}" data-name="${item.Nama}" data-jabatan="${item['Jabatan']}" data-trainer="${item['Trainer/Trainee']}">
+                            ${item.Nama} <span class="category">(${item['Jabatan']} - ${item['Trainer/Trainee']})</span>
                         </div>`;
                     });
                     dropdown.innerHTML = html;
