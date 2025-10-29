@@ -453,13 +453,12 @@
         <div class="logo-container">
             <img src="img/UPSI-&-100-Tahun.png" alt="UPSI">
             <img src="img/UHSB.png" alt="UHSB">
-            <img src="img/MyFISNEO.png" alt="MYFISNEO">
-            <img src="img/UNIMAS.png" alt="UNIMAS">
+            <img src="img/ASWARA.png" alt="UNIMAS">
         </div>
 
         <div class="header-section">
             <h1 class="form-title">Sistem Kehadiran</h1>
-            <p class="form-subtitle">Dicipta oleh UPSI Holdings Sdn. Bhd.</p>
+            <p class="form-subtitle">Hak Cipta UPSI Holdings Sdn. Bhd.</p>
         </div>
         
         <div id="errorContainer" class="hidden"></div>
@@ -514,10 +513,10 @@
     </div>
 
     <script>
-        const SESSION_API   = 'https://script.google.com/macros/s/AKfycbwYFzLPOqPvUGMkJ7KGV_4K8_PUEZAuAp74mIdueuVef4SzHQoszYT1AXjOPFCvR_rs/exec';
-        const NAMES_API     = 'https://script.google.com/macros/s/AKfycbyXpcRl33CyED-n1c1GFBMZhPCFLRZvlkg7x8XUaeycNphGn10iuJzbfMAXp6HTG8Ob/exec';
-        const ENDPOINT      = 'https://script.google.com/macros/s/AKfycbzWCW5Ete8mGBcsMbnpWl6tl1HDYxxavfUJ3HErJN8-2jeC6XBmXmupEXb5g-nhMXQT/exec';
-        const ENDPOINT_POST = 'https://script.google.com/macros/s/AKfycbzRphUTTEXcD8EEkpLJwCa3x6zIjKlxwVlVHINRYwUVUmAKTtRZOHsRLa-azv7nPtGc/exec';
+        const SESSION_API   = 'https://script.google.com/macros/s/AKfycbwAcZuDryEzXB8ZpaGY88DMCOv9LzO7jhA4MXqNcwT0H809DXlVSz2AroZ-veYAkju2/exec';
+        const NAMES_API     = 'https://script.google.com/macros/s/AKfycbw84uICx1SDhLISUjT7waNAOr3dBIvd8v11IKP2UgJ55fEJVIbAShzNECZL-pFT0OPVOg/exec';
+        const ENDPOINT      = 'https://script.google.com/macros/s/AKfycbx4qe8VJBqnJMTL6wPgz2G-lgRmz8wGsMAbUywrpcOc4m1EOOIHWoB1Uq7-qcyd65Sc/exec';
+        const ENDPOINT_POST = 'https://script.google.com/macros/s/AKfycbxbJRtjIlmgk3t84bZrAaTvSGLsTuTK9bNNdqu0jghP94CpPfTmqxqu3myLo8iCjZH3Jw/exec';
         
         let sessionData = {};
         let namesData = [];
@@ -669,6 +668,7 @@
         function setupNameAutocomplete() {
             const namaInput = document.getElementById('namaInput');
             const dropdown = document.getElementById('nameDropdown');
+            const jabatanSelect = document.getElementById('jabatan');
             const trainerSelect = document.getElementById('trainer');
             let selectedIndex = -1;
 
@@ -678,6 +678,8 @@
                 if (searchTerm.length === 0) {
                     dropdown.classList.remove('show');
                     isCustomName = false;
+                    jabatanSelect.value = '';
+                    jabatanSelect.disabled = false;
                     trainerSelect.value = '';
                     trainerSelect.disabled = false;
                     return;
@@ -696,8 +698,8 @@
                 } else {
                     let html = '';
                     filtered.forEach((item, index) => {
-                        html += `<div class="name-option" data-index="${index}" data-name="${item.Nama}" data-trainer="${item['Trainer/Trainee']}">
-                            ${item.Nama} <span class="category">(${item['Trainer/Trainee']})</span>
+                        html += `<div class="name-option" data-index="${index}" data-name="${item.Nama}" data-jabatan="${item['Jabatan']} data-trainer="${item['Trainer/Trainee']}">
+                            ${item.Nama} ${item['Jabatan']} <span class="category">(${item['Trainer/Trainee']})</span>
                         </div>`;
                     });
                     dropdown.innerHTML = html;
@@ -739,6 +741,8 @@
                 
                 if (option) {
                     namaInput.value = option.dataset.name;
+                    jabatanSelect.value = option.dataset.jabatan;
+                    jabatanSelect.disabled = true;
                     trainerSelect.value = option.dataset.trainer;
                     trainerSelect.disabled = true;
                     dropdown.classList.remove('show');
@@ -746,6 +750,7 @@
                 } else if (addNew) {
                     dropdown.classList.remove('show');
                     isCustomName = true;
+                    jabatanSelect.disabled = false;
                     trainerSelect.disabled = false;
                 }
             });

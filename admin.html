@@ -387,8 +387,8 @@
                         <div class="stat-label">UPSI</div>
                     </div>
                     <div class="stat-card">
-                        <div class="stat-value" id="unimasCount">0</div>
-                        <div class="stat-label">UNIMAS</div>
+                        <div class="stat-value" id="aswaraCount">0</div>
+                        <div class="stat-label">ASWARA</div>
                     </div>
                 </div>
 
@@ -431,9 +431,9 @@
         let allAttendanceData = {};
         let currentFilteredData = [];
         
-        const SESSION_API = 'https://script.google.com/macros/s/AKfycbwYFzLPOqPvUGMkJ7KGV_4K8_PUEZAuAp74mIdueuVef4SzHQoszYT1AXjOPFCvR_rs/exec';
-        const BASE_URL = 'https://ict-upsiholdings.github.io/sistemkehadiranuhsb/index.html';
-        const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbzWCW5Ete8mGBcsMbnpWl6tl1HDYxxavfUJ3HErJN8-2jeC6XBmXmupEXb5g-nhMXQT/exec';
+        const SESSION_API = 'https://script.google.com/macros/s/AKfycbwAcZuDryEzXB8ZpaGY88DMCOv9LzO7jhA4MXqNcwT0H809DXlVSz2AroZ-veYAkju2/exec';
+        const BASE_URL = 'https://ict-upsiholdings.github.io/sistemkehadiranuhsbmysisaswara/index.html';
+        const API_ENDPOINT = 'https://script.google.com/macros/s/AKfycbx4qe8VJBqnJMTL6wPgz2G-lgRmz8wGsMAbUywrpcOc4m1EOOIHWoB1Uq7-qcyd65Sc/exec';
 
         async function loadSessionData() {
             try {
@@ -687,8 +687,8 @@
             document.getElementById('totalAttendees').textContent = data.length;
             document.getElementById('upsiCount').textContent = 
                 data.filter(r => r['Trainer/Trainee'] === 'UPSI').length;
-            document.getElementById('unimasCount').textContent = 
-                data.filter(r => r['Trainer/Trainee'] === 'UNIMAS').length;
+            document.getElementById('aswaraCount').textContent = 
+                data.filter(r => r['Trainer/Trainee'] === 'ASWARA').length;
         }
 
         function filterAttendance() {
@@ -770,7 +770,7 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
 
     doc.setFontSize(11);
     doc.setFont(undefined, 'normal');
-    doc.text('Kehadiran Sesi Latihan Sesi 4 MyFIS NEO@UNIMAS', 14, textStartY + 8);
+    doc.text('Kehadiran Demo MySIS@ASWARA', 14, textStartY + 8);
 
     // Tarikh semasa
     const currentDate = new Date().toLocaleString('ms-MY', {
@@ -822,7 +822,7 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     yPos += 5;
     doc.text(`UPSI: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'UPSI').length}`, 14, yPos);
     yPos += 5;
-    doc.text(`UNIMAS: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'UNIMAS').length}`, 14, yPos);
+    doc.text(`ASWARA: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'ASWARA').length}`, 14, yPos);
 
     // === 📑 Sediakan jadual ===
     const tableData = currentFilteredData.map((record, index) => {
