@@ -789,10 +789,17 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     let yPos = textStartY + 25;
 
     if (sesiFilter) {
-        // Cari data sesi untuk dapatkan modul dan tarikh
-        const sesiData = sessionData[data.sesiFilter];
+        // Extract nombor sesi dari "Sesi 1" → 1
+        const sesiNumber = parseInt(sesiFilter.replace('Sesi ', ''));
         
-        doc.text(`Sesi: ${sesiFilter} ${sesiData}`, 14, yPos);
+        // sessionData adalah array, index bermula dari 0
+        // Jadi Sesi 1 = index 0, Sesi 2 = index 1, dst
+        const sesiData = sessionData[sesiNumber - 1];
+        
+        console.log('sesiNumber:', sesiNumber);
+        console.log('sesiData:', sesiData);
+        
+        doc.text(`Sesi: ${sesiFilter}`, 14, yPos);
         yPos += 5;
         
         if (sesiData) {
@@ -825,37 +832,73 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
     doc.text(`ASWARA: ${currentFilteredData.filter(r => r['Trainer/Trainee'] === 'ASWARA').length}`, 14, yPos);
 
     // === 📑 Sediakan jadual ===
-    const tableData = currentFilteredData.map((record, index) => {
-        // Format tarikh
-        let timestamp = '-';
-        if (record['Timestamp']) {
-            const date = new Date(record['Timestamp']);
-            timestamp = date.toLocaleString('ms-MY', {
-                timeZone: 'Asia/Kuala_Lumpur',
-                day: '2-digit',
-                month: '2-digit',
-                year: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-                hour12: true
-            }).replace(',', '');
-        }
 
-        return [
-            index + 1,
-            record.Nama || '-',
-            record.Jabatan || '-',
-            record['Trainer/Trainee'] || '-',
-            record['Tarikh & Masa'] || '-',
-            record.Modul || '-',
-            timestamp
-        ];
-    });
+    // Tentukan columns based on filter
+    let tableHeaders, tableData;
+
+    if (sesiFilter) {
+        // Kalau ada filter sesi - buang column Sesi & Modul
+        tableHeaders = [['No.', 'Nama', 'Jabatan', 'Trainer/Trainee', 'Tarikh & Masa']];
+        
+        tableData = currentFilteredData.map((record, index) => {
+            let timestamp = '-';
+            if (record['Timestamp']) {
+                const date = new Date(record['Timestamp']);
+                timestamp = date.toLocaleString('ms-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).replace(',', '');
+            }
+
+            return [
+                index + 1,
+                record.Nama || '-',
+                record.Jabatan || '-',
+                record['Trainer/Trainee'] || '-',
+                timestamp
+            ];
+        });
+    } else {
+        // Kalau semua sesi - tunjuk semua columns
+        tableHeaders = [['No.', 'Nama', 'Jabatan', 'Trainer/Trainee', 'Sesi', 'Modul', 'Tarikh & Masa']];
+        
+        tableData = currentFilteredData.map((record, index) => {
+            let timestamp = '-';
+            if (record['Timestamp']) {
+                const date = new Date(record['Timestamp']);
+                timestamp = date.toLocaleString('ms-MY', {
+                    timeZone: 'Asia/Kuala_Lumpur',
+                    day: '2-digit',
+                    month: '2-digit',
+                    year: 'numeric',
+                    hour: '2-digit',
+                    minute: '2-digit',
+                    second: '2-digit',
+                    hour12: true
+                }).replace(',', '');
+            }
+
+            return [
+                index + 1,
+                record.Nama || '-',
+                record.Jabatan || '-',
+                record['Trainer/Trainee'] || '-',
+                record['Tarikh & Masa'] || '-',
+                record.Modul || '-',
+                timestamp
+            ];
+        });
+    }
 
     doc.autoTable({
         startY: yPos + 8,
-        head: [['No.', 'Nama', 'Jabatan', 'Trainer/Trainee', 'Sesi', 'Modul', 'Tarikh & Masa']],
+        head: tableHeaders,
         body: tableData,
         theme: 'striped',
         headStyles: {
@@ -876,7 +919,15 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
             overflow: 'linebreak',
             fontSize: 8
         },
-        columnStyles: {
+        columnStyles: sesiFilter ? {
+            // Filter sesi - 5 columns
+            0: { cellWidth: 10 },
+            1: { cellWidth: 40 },
+            2: { cellWidth: 40 },
+            3: { cellWidth: 30 },
+            4: { cellWidth: 40 }
+        } : {
+            // Semua sesi - 7 columns
             0: { cellWidth: 10 },
             1: { cellWidth: 30 },
             2: { cellWidth: 30 },
@@ -885,28 +936,27 @@ const headerHeight = await addHeaderImage(doc, headerImage, 14, 10, 180);
             5: { cellWidth: 35 },
             6: { cellWidth: 32 }
         },
-        // === 🕒 Tambah tarikh + nombor halaman di setiap muka surat ===
         didDrawPage: (data) => {
-            const pageCount = doc.internal.getNumberOfPages();
             const pageSize = doc.internal.pageSize;
             const pageWidth = pageSize.getWidth();
             const pageHeight = pageSize.getHeight();
 
-            // Tarikh di header (kanan atas)
             doc.setFontSize(8);
             doc.text(currentDate, pageWidth - 60, 10);
-
-            // Page number di footer
-            doc.setFontSize(9);
-            doc.text(
-                `Halaman ${data.pageNumber} / ${pageCount}`,
-                pageWidth / 2,
-                pageHeight - 8,
-                { align: 'center' }
-            );
         }
     });
 
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setFontSize(9);
+        doc.text(
+            `Halaman ${i} / ${totalPages}`,
+            doc.internal.pageSize.getWidth() / 2,
+            doc.internal.pageSize.getHeight() - 8,
+            { align: 'center' }
+        );
+    }
     // === 💾 Simpan fail ===
     const filename = sesiFilter 
         ? `Kehadiran_${sesiFilter}_${new Date().getTime()}.pdf`
